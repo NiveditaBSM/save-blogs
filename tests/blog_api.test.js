@@ -1,16 +1,50 @@
 const supertest = require('supertest')
 const app = require('../app')
 const Blog = require('../models/blog')
-const { test, describe, after, beforeEach } = require('node:test')
+const User = require('../models/user')
+const { test, describe, after, beforeEach, before } = require('node:test')
 const assert = require('node:assert')
 const mongoose = require('mongoose')
 const helper = require('./test_helper')
-const blog = require('../models/blog')
 
 const api = supertest(app)
 
+let token;
+// before(async () => {
+
+//     const newUser = {
+//         name: 'Nivedita',
+//         username: 'Ivin',
+//         password: 'ivinpass'
+//     }
+
+//     await api
+//         .post('/api/users')
+//         .send(newUser)
+
+//     const toLogin = {
+//         username: 'Ivin',
+//         password: 'ivinpass'
+//     }
+
+//     const loggedIn = await api
+//         .post('/api/login')
+//         .send(toLogin)
+
+//     token = loggedIn.body.token
+// })
+
 describe('testing the blog app for- ', () => {
+
     beforeEach(async () => {
+        await User.deleteMany({})
+        const newUser = { name: 'NiveditaTest', username: 'Ivintest', password: 'ivinpass' }
+        await api.post('/api/users').send(newUser)
+
+        const toLogin = { username: 'Ivintest', password: 'ivinpass' }
+        const loggedIn = await api.post('/api/login').send(toLogin)
+        token = loggedIn.body.token
+
         await Blog.deleteMany({})
         const blogsPromiseArray = helper.initialBlogs.map(async (blog) => {
             const newBlog = new Blog(blog)
@@ -45,6 +79,7 @@ describe('testing the blog app for- ', () => {
 
         await api
             .post('/api/blogs')
+            .set('Authorization', `Bearer ${token}`)
             .send(helper.singleBlog)
             .expect(201)
 
@@ -56,9 +91,21 @@ describe('testing the blog app for- ', () => {
 
     })
 
+    test('new blog creation fails with code 401 if no token provided', async () => {
+        const initialBlogs = await helper.blogsInDb()
+
+        await api
+            .post('/api/blogs')
+            .set('Authorization', '')
+            .send(helper.singleBlog)
+            .expect(401)
+    })
+
     test('when no likes provided while creating, defaults to 10', async () => {
+
         const response = await api
             .post('/api/blogs')
+            .set('Authorization', `Bearer ${token}`)
             .send(helper.blogWithoutLikes)
 
         const savedBlog = response.body
@@ -68,6 +115,7 @@ describe('testing the blog app for- ', () => {
     test('new blog will not be saved if title is missing', async () => {
         await api
             .post('/api/blogs')
+            .set('Authorization', `Bearer ${token}`)
             .send(helper.blogWithoutTitle)
             .expect(400)
     })
@@ -75,13 +123,15 @@ describe('testing the blog app for- ', () => {
     test('new blog will not be saved if url is missing', async () => {
         await api
             .post('/api/blogs')
+            .set('Authorization', `Bearer ${token}`)
             .send(helper.blogWithoutUrl)
             .expect(400)
     })
 
-    test('particular blog can be deleted given blog id', async () => {
-        response = await api
+    test('particular blog can be deleted given blog id and token for user who created it', async () => {
+        const response = await api
             .post('/api/blogs')
+            .set('Authorization', `Bearer ${token}`)
             .send(helper.tempBlog)
 
         const savedBlog = response.body
@@ -89,6 +139,7 @@ describe('testing the blog app for- ', () => {
 
         await api
             .delete(`/api/blogs/${savedBlog.id}`)
+            .set('Authorization', `Bearer ${token}`)
             .expect(204)
 
         const afterDelete = await helper.blogsInDb()
