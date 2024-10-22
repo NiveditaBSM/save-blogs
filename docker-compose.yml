@@ -1,0 +1,21 @@
+version: '3.8'
+services:
+  mongo:
+    build: ./mongo  # This refers to the folder where your MongoDB Dockerfile is located
+    container_name: mongodb_container
+    environment:
+      MONGO_INITDB_DATABASE: testBlogsApp
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: rohan5898
+    ports:
+      - '27017:27017'  # Expose MongoDB on localhost
+    volumes:
+      - mongo-data:/data/db  # Persist MongoDB data
+    networks:
+      - backend-network  # Create a shared network for the services
+
+volumes:
+  mongo-data:
+
+networks:
+  backend-network:

@@ -1,0 +1,12 @@
+FROM mongo:5.0
+
+# Set environment variables for MongoDB
+ENV MONGO_INITDB_DATABASE=testBlogsApp
+ENV MONGO_INITDB_ROOT_USERNAME=root
+ENV MONGO_INITDB_ROOT_PASSWORD=rohan5898
+
+# Expose the default MongoDB port
+EXPOSE 27017
+
+# Run MongoDB
+CMD ["mongod"]
